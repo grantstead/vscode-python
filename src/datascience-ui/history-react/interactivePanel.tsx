@@ -9,8 +9,7 @@ import { noop } from '../../client/common/utils/misc';
 import { Identifiers } from '../../client/datascience/constants';
 import { Cell } from '../interactive-common/cell';
 import { ContentPanel, IContentPanelProps } from '../interactive-common/contentPanel';
-import { InputHistory } from '../interactive-common/inputHistory';
-import { createEditableCellVM, IMainState } from '../interactive-common/mainState';
+import { IMainState } from '../interactive-common/mainState';
 import { IVariablePanelProps, VariablePanel } from '../interactive-common/variablePanel';
 import { ErrorBoundary } from '../react-common/errorBoundary';
 import { IKeyboardEvent } from '../react-common/event';
@@ -36,32 +35,20 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
     constructor(props: IInteractivePanelProps) {
         super(props);
 
-        this.state = {
-            cellVMs: [],
-            busy: true,
-            undoStack: [],
-            redoStack : [],
-            submittedText: false,
-            history: new InputHistory(),
-            currentExecutionCount: 0,
-            variables: [],
-            pendingVariableCount: 0,
-            debugging: false,
-            knownDark: false,
-            editCellVM: getSettings && getSettings().allowInput ? createEditableCellVM(1) : undefined
-        };
-
         // Create our state controller. It manages updating our state.
         this.stateController = new InteractivePanelStateController({
             skipDefault: this.props.skipDefault,
             testMode: this.props.testMode ? true : false,
             expectingDark: this.props.baseTheme !== 'vscode-light',
-            initialState: this.state,
             setState: this.setState.bind(this),
             activate: this.activated.bind(this),
             scrollToCell: this.scrollToCell.bind(this),
-            defaultEditable: false
+            defaultEditable: false,
+            hasEdit: getSettings && getSettings().allowInput
         });
+
+        // Default our state.
+        this.state = this.stateController.getState();
     }
 
     public shouldComponentUpdate(_nextProps: IInteractivePanelProps, nextState: IMainState): boolean {

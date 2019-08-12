@@ -10,8 +10,7 @@ import { Identifiers } from '../../client/datascience/constants';
 import { CellState, ICell } from '../../client/datascience/types';
 import { Cell, ICellViewModel } from '../interactive-common/cell';
 import { ContentPanel, IContentPanelProps } from '../interactive-common/contentPanel';
-import { InputHistory } from '../interactive-common/inputHistory';
-import { createEditableCellVM, IMainState } from '../interactive-common/mainState';
+import { IMainState } from '../interactive-common/mainState';
 import { IVariablePanelProps, VariablePanel } from '../interactive-common/variablePanel';
 import { Button } from '../react-common/button';
 import { IKeyboardEvent } from '../react-common/event';
@@ -38,32 +37,20 @@ export class NativeEditor extends React.Component<INativeEditorProps, IMainState
     constructor(props: INativeEditorProps) {
         super(props);
 
-        this.state = {
-            cellVMs: [],
-            busy: true,
-            undoStack: [],
-            redoStack : [],
-            submittedText: false,
-            history: new InputHistory(),
-            currentExecutionCount: 0,
-            variables: [],
-            pendingVariableCount: 0,
-            debugging: false,
-            knownDark: false,
-            editCellVM: createEditableCellVM(1)
-        };
-
         // Create our state controller. It manages updating our state.
         this.stateController = new NativeEditorStateController({
             skipDefault: this.props.skipDefault,
             testMode: this.props.testMode ? true : false,
             expectingDark: this.props.baseTheme !== 'vscode-light',
-            initialState: this.state,
             setState: this.setState.bind(this),
             activate: this.activated.bind(this),
             scrollToCell: this.scrollToCell.bind(this),
-            defaultEditable: true
+            defaultEditable: true,
+            hasEdit: true
         });
+
+        // Default our state.
+        this.state = this.stateController.getState();
     }
 
     public render() {

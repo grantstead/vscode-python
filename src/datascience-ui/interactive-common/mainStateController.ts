@@ -30,12 +30,13 @@ import { IMessageHandler, PostOffice } from '../react-common/postOffice';
 import { getSettings, updateSettings } from '../react-common/settingsReactSide';
 import { detectBaseTheme } from '../react-common/themeDetector';
 import { ICellViewModel } from './cell';
+import { InputHistory } from './inputHistory';
 import { IntellisenseProvider } from './intellisenseProvider';
-import { createCellVM, extractInputText, generateTestState, IMainState } from './mainState';
+import { createCellVM, createEditableCellVM, extractInputText, generateTestState, IMainState } from './mainState';
 import { initializeTokenizer, registerMonacoLanguage } from './tokenizer';
 
 export interface IMainStateControllerProps {
-    initialState: IMainState;
+    hasEdit: boolean;
     skipDefault: boolean;
     testMode: boolean;
     expectingDark: boolean;
@@ -58,12 +59,25 @@ export class MainStateController implements IMessageHandler {
 
     // tslint:disable-next-line:max-func-body-length
     constructor(private props: IMainStateControllerProps) {
-        this.state = { editorOptions: this.computeEditorOptions(), ...props.initialState };
-        let newState = cloneDeep(this.state);
+        this.state = {
+            editorOptions: this.computeEditorOptions(),
+            cellVMs: [],
+            busy: true,
+            undoStack: [],
+            redoStack: [],
+            submittedText: false,
+            history: new InputHistory(),
+            currentExecutionCount: 0,
+            variables: [],
+            pendingVariableCount: 0,
+            debugging: false,
+            knownDark: false,
+            editCellVM: this.props.hasEdit ? createEditableCellVM(1) : undefined
+        };
 
         // Add test state if necessary
         if (!this.props.skipDefault) {
-            newState = generateTestState(this.inputBlockToggled, '', this.props.defaultEditable);
+            this.state = generateTestState(this.inputBlockToggled, '', this.props.defaultEditable);
         }
 
         // Setup the completion provider for monaco. We only need one
@@ -73,7 +87,7 @@ export class MainStateController implements IMessageHandler {
         if (this.props.skipDefault) {
             if (this.props.testMode) {
                 // Running a test, skip the tokenizer. We want the UI to display synchronously
-                newState = { tokenizerLoaded: true, ...newState };
+                this.state = { tokenizerLoaded: true, ...this.state };
 
                 // However we still need to register python as a language
                 registerMonacoLanguage();
@@ -91,9 +105,6 @@ export class MainStateController implements IMessageHandler {
         // Get our monaco theme and css
         this.postOffice.sendUnsafeMessage(CssMessages.GetCssRequest, { isDark: this.props.expectingDark });
         this.postOffice.sendUnsafeMessage(CssMessages.GetMonacoThemeRequest, { isDark: this.props.expectingDark });
-
-        // Since the state isn't actually part of a react control, we need to force at least one update
-        setTimeout(() => this.setState(newState), 10);
     }
 
     public dispose() {
@@ -577,6 +588,10 @@ export class MainStateController implements IMessageHandler {
         }
     }
 
+    public getState(): IMainState {
+        return this.state;
+    }
+
     // Adjust the visibility or collapsed state of a cell
     protected alterCellVM(cellVM: ICellViewModel, visible: boolean, expanded: boolean): ICellViewModel {
         if (cellVM.cell.data.cell_type === 'code') {
@@ -628,10 +643,6 @@ export class MainStateController implements IMessageHandler {
         this.props.setState(newState, () => {
             this.state = { ...this.state, ...newState };
         });
-    }
-
-    protected getState(): IMainState {
-        return this.state;
     }
 
     protected onCodeLostFocus(_cellId: string) {
