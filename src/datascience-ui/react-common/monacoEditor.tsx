@@ -60,6 +60,7 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
         this.styleObserver = new MutationObserver(this.watchStyles);
     }
 
+    // tslint:disable-next-line: max-func-body-length
     public componentDidMount = () => {
         if (window) {
             window.addEventListener('resize', this.windowResized);
@@ -451,16 +452,6 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
                                 // We need to create a dummy 'monaco-editor' div so that the content widgets get the same styles.
                                 this.widgetParent = document.createElement('div', {});
                                 this.widgetParent.setAttribute('class', `${editorNode.className} monaco-editor-pretend-parent`);
-
-                                // We also need to make sure its position follows the editor around on the screen.
-                                const rect = editorNode.getBoundingClientRect();
-                                if (rect) {
-                                    this.lastOffsetLeft = rect.left;
-                                    this.lastOffsetTop = rect.top;
-                                    this.widgetParent.setAttribute(
-                                        'style',
-                                        `position: absolute; left: ${rect.left}px; top: ${rect.top}px`);
-                                }
 
                                 root.appendChild(this.widgetParent);
                                 this.widgetParent.appendChild(contentWidgets);
