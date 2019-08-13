@@ -244,7 +244,7 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
 
     private editCellKeyDown = (_cellId: string, e: IKeyboardEvent) => {
         if (e.code === 'Escape') {
-            this.editCellEscape();
+            this.editCellEscape(e);
         } else if (e.code === 'Enter' && e.shiftKey) {
             this.editCellSubmit(e);
         }
@@ -273,9 +273,9 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
         }
     }
 
-    private editCellEscape = () => {
+    private editCellEscape = (e: IKeyboardEvent) => {
         const focusedElement = document.activeElement;
-        if (focusedElement) {
+        if (focusedElement !== null && e.editorInfo && !e.editorInfo.isSuggesting) {
             const nextTabStop = this.findTabStop(1, focusedElement);
             if (nextTabStop) {
                 nextTabStop.focus();

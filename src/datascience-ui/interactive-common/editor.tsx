@@ -55,7 +55,7 @@ export class Editor extends React.Component<IEditorProps, IEditorState> {
 
     public render() {
         const classes = this.props.readOnly ? 'editor-area' : 'editor-area editor-area-editable';
-        const renderEditor = this.state.forceMonaco || !this.props.useQuickEdit ? this.renderMonacoEditor : this.renderQuickEditor;
+        const renderEditor = this.state.forceMonaco || this.props.useQuickEdit === undefined || this.props.useQuickEdit === false ? this.renderMonacoEditor : this.renderQuickEditor;
         return (
             <div className = {classes}>
                     {renderEditor()}

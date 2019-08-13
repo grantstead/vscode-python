@@ -53,7 +53,7 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
     private lastOffsetLeft: number | undefined;
     private lastOffsetTop: number | undefined;
     private debouncedUpdateEditorSize : () => void | undefined;
-    private styleObserver : MutationObserver;
+    private styleObserver : MutationObserver | undefined;
     private watchingMargin: boolean = false;
     private throttledUpdateWidgetPosition = throttle(this.updateWidgetPosition.bind(this), 100);
 
@@ -63,7 +63,13 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
         this.containerRef = React.createRef<HTMLDivElement>();
         this.measureWidthRef = React.createRef<HTMLDivElement>();
         this.debouncedUpdateEditorSize = debounce(this.updateEditorSize.bind(this), 150);
-        this.styleObserver = new MutationObserver(this.watchStyles);
+
+        // JSDOM has MutationObserver in the window object
+        if ('MutationObserver' in window) {
+            // tslint:disable-next-line: no-string-literal no-any
+            const ctor = (window as any)['MutationObserver'];
+            this.styleObserver = new ctor(this.watchStyles);
+        }
     }
 
     // tslint:disable-next-line: max-func-body-length
@@ -190,7 +196,9 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
             this.state.editor.dispose();
         }
 
-        this.styleObserver.disconnect();
+        if (this.styleObserver) {
+            this.styleObserver.disconnect();
+        }
     }
 
     public componentDidUpdate(prevProps: IMonacoEditorProps, prevState: IMonacoEditorState) {
@@ -248,16 +256,16 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
 
     private watchStyles = (mutations: MutationRecord[], _observer: MutationObserver): void => {
         try {
-            if (mutations && mutations.length > 0) {
+            if (mutations && mutations.length > 0 && this.styleObserver) {
                 mutations.forEach(m => {
                     if (m.type === 'attributes' && m.attributeName === 'style') {
                         const element = m.target as HTMLDivElement;
                         if (element && element.style && element.style.left) {
                             const left = element.style.left.endsWith('px') ? parseInt(element.style.left.substr(0, element.style.left.length - 2), 10) : -1;
                             if (left > 10) {
-                                this.styleObserver.disconnect();
+                                this.styleObserver!.disconnect();
                                 element.style.left = `${left + 3}px`;
-                                this.styleObserver.observe(element, { attributes: true, attributeFilter: ['style']});
+                                this.styleObserver!.observe(element, { attributes: true, attributeFilter: ['style']});
                             }
                         }
                     }
@@ -423,7 +431,7 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
 
                     // Watch the scrollable element (it's where the code lines up)
                     const scrollable = editorNode.getElementsByClassName('monaco-scrollable-element');
-                    if (!this.watchingMargin && scrollable && scrollable.length) {
+                    if (!this.watchingMargin && scrollable && scrollable.length && this.styleObserver) {
                         const watching = scrollable[0] as HTMLDivElement;
                         this.watchingMargin = true;
                         this.styleObserver.observe(watching, { attributes: true, attributeFilter: ['style'] });

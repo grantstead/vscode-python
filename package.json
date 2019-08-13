@@ -1588,7 +1588,7 @@
                 },
                 "python.dataScience.autoOpenNotebooks": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "When opening ipynb files, automatically open the file in a separate editor.",
                     "scope": "resource"
                 },

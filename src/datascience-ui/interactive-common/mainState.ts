@@ -150,15 +150,16 @@ export function createCellVM(inputCell: ICell, settings: IDataScienceSettings | 
         inputBlockShow: true,
         inputBlockText: inputText,
         inputBlockCollapseNeeded: (inputLinesCount > 1),
-        inputBlockToggled: inputBlockToggled,
-        useQuickEdit: true
+        inputBlockToggled: inputBlockToggled
     };
 }
 
 function generateVMs(inputBlockToggled: (id: string) => void, filePath: string, editable: boolean): ICellViewModel[] {
     const cells = generateCells(filePath);
     return cells.map((cell: ICell) => {
-        return createCellVM(cell, undefined, inputBlockToggled, editable);
+        const vm = createCellVM(cell, undefined, inputBlockToggled, editable);
+        vm.useQuickEdit = true;
+        return vm;
     });
 }
 
