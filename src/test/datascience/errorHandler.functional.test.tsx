@@ -17,7 +17,16 @@ import { DataScienceIocContainer } from './dataScienceIocContainer';
 import { MockDocumentManager } from './mockDocumentManager';
 
 suite('DataScience Error Handler Functional Tests', () => {
-    const ioc = createContainer();
+    let ioc: DataScienceIocContainer;
+
+    setup(() => {
+        ioc = createContainer();
+    });
+
+    teardown(async () => {
+        await ioc.dispose();
+    });
+
 
     function createContainer(): DataScienceIocContainer {
         const result = new DataScienceIocContainer();

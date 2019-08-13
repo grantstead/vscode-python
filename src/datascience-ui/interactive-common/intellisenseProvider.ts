@@ -139,6 +139,7 @@ export class IntellisenseProvider implements monacoEditor.languages.CompletionIt
             const waiting = this.completionRequests.get(response.requestId);
             if (waiting) {
                 waiting.promise.resolve(response.list);
+                this.completionRequests.delete(response.requestId);
             }
         }
     }
@@ -152,6 +153,7 @@ export class IntellisenseProvider implements monacoEditor.languages.CompletionIt
             const waiting = this.hoverRequests.get(response.requestId);
             if (waiting) {
                 waiting.promise.resolve(response.hover);
+                this.hoverRequests.delete(response.requestId);
             }
         }
     }
@@ -166,6 +168,7 @@ export class IntellisenseProvider implements monacoEditor.languages.CompletionIt
             const waiting = this.signatureHelpRequests.get(response.requestId);
             if (waiting) {
                 waiting.promise.resolve(response.signatureHelp);
+                this.signatureHelpRequests.delete(response.requestId);
             }
         }
     }
