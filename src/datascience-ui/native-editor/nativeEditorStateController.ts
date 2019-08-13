@@ -23,11 +23,6 @@ export class NativeEditorStateController extends MainStateController {
         const result = super.handleMessage(msg, payload);
 
         switch (msg) {
-            case InteractiveWindowMessages.LoadAllCells:
-                // Stop being busy as we've loaded our first set of cells.
-                this.stopBusy();
-                break;
-
             case InteractiveWindowMessages.NotebookDirty:
                 // Indicate dirty
                 this.setState({ dirty: true });
@@ -137,6 +132,11 @@ export class NativeEditorStateController extends MainStateController {
 
         cellVM.inputBlockOpen = true;
         cellVM.inputBlockText = newText;
+
+        // Turn on quick edit (use a textArea) for any cell that's just been created.
+        if (cellVM.useQuickEdit === undefined) {
+            cellVM.useQuickEdit = true;
+        }
 
         return cellVM;
     }

@@ -72,6 +72,7 @@ export interface ICellViewModel {
     directInput?: boolean;
     showLineNumbers?: boolean;
     hideOutput?: boolean;
+    useQuickEdit?: boolean;
     inputBlockToggled(id: string): void;
 }
 
@@ -326,6 +327,7 @@ export class Cell extends React.Component<ICellProps, ICellState> {
                         unfocused={this.onCodeUnfocused}
                         keyDown={this.onKeyDown}
                         showLineNumbers={this.props.showLineNumbers}
+                        useQuickEdit={this.props.cellVM.useQuickEdit}
                         />
                 </div>
             );
@@ -355,6 +357,7 @@ export class Cell extends React.Component<ICellProps, ICellState> {
                         unfocused={this.onMarkdownUnfocused}
                         keyDown={this.onKeyDown}
                         ref={this.markdownRef}
+                        useQuickEdit={this.props.cellVM.useQuickEdit}
                         />
                 </div>
             );

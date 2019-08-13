@@ -54,6 +54,7 @@ export class MainStateController implements IMessageHandler {
     private intellisenseProvider: IntellisenseProvider;
     private onigasmPromise: Deferred<ArrayBuffer> | undefined;
     private tmlangugePromise: Deferred<string> | undefined;
+    private suspendUpdates: boolean = false;
     private monacoIdToCellId: Map<string, string> = new Map<string, string>();
     private cellIdToMonacoId: Map<string, string> = new Map<string, string>();
 
@@ -507,6 +508,7 @@ export class MainStateController implements IMessageHandler {
             newCell = createCellVM(newCell.cell, getSettings(), this.inputBlockToggled, this.props.defaultEditable);
             const collapseInputs = getSettings().collapseCellInputCodeByDefault;
             newCell = this.alterCellVM(newCell, true, !collapseInputs);
+            newCell.useQuickEdit = false;
 
             // Generate a new id if necessary (as the edit cell always has the same one)
             if (newCell.cell.id === Identifiers.EditCellId) {
@@ -588,6 +590,24 @@ export class MainStateController implements IMessageHandler {
         }
     }
 
+    public setState(newState: {}, callback?: () => void) {
+        if (this.suspendUpdates) {
+            // Just save our new state
+            this.state = { ...this.state, ...newState };
+            if (callback) {
+                callback();
+            }
+        } else {
+            // Send a UI update
+            this.props.setState(newState, () => {
+                this.state = { ...this.state, ...newState };
+                if (callback) {
+                    callback();
+                }
+            });
+        }
+    }
+
     public getState(): IMainState {
         return this.state;
     }
@@ -637,12 +657,6 @@ export class MainStateController implements IMessageHandler {
         }
 
         return cellVM;
-    }
-
-    protected setState(newState: {}) {
-        this.props.setState(newState, () => {
-            this.state = { ...this.state, ...newState };
-        });
     }
 
     protected onCodeLostFocus(_cellId: string) {
@@ -1031,8 +1045,16 @@ export class MainStateController implements IMessageHandler {
     // tslint:disable-next-line: no-any
     private handleLoadAllCells(payload: any) {
         if (payload && payload.cells) {
+            // Turn off updates so we generate all of the cell vms without rendering.
+            this.suspendUpdates = true;
+
+            // Update all of the vms
             const cells = payload.cells as ICell[];
             cells.forEach(c => this.finishCell(c));
+
+            // Turn updates back on and resend the state.
+            this.suspendUpdates = false;
+            this.setState(this.state);
         }
     }
 

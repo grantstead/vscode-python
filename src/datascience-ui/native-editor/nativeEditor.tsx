@@ -21,6 +21,11 @@ import { getLocString } from '../react-common/locReactSide';
 import { getSettings } from '../react-common/settingsReactSide';
 import { NativeEditorStateController } from './nativeEditorStateController';
 
+// See the discussion here: https://github.com/Microsoft/tslint-microsoft-contrib/issues/676
+// tslint:disable: react-this-binding-issue
+// tslint:disable-next-line:no-require-imports no-var-requires
+const debounce = require('lodash/debounce') as typeof import('lodash/debounce');
+
 interface INativeEditorProps {
     skipDefault: boolean;
     testMode?: boolean;
@@ -30,9 +35,12 @@ interface INativeEditorProps {
 
 export class NativeEditor extends React.Component<INativeEditorProps, IMainState> {
     private mainPanelRef: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
+    private contentPanelScrollRef: React.RefObject<HTMLElement> = React.createRef<HTMLElement>();
     private editCellRef: React.RefObject<Cell> = React.createRef<Cell>();
     private contentPanelRef: React.RefObject<ContentPanel> = React.createRef<ContentPanel>();
     private stateController: NativeEditorStateController;
+    private initialCellDivs: (HTMLDivElement | null)[] = [];
+    private debounceUpdateVisibleCells = debounce(this.updateVisibleCells.bind(this), 100);
 
     constructor(props: INativeEditorProps) {
         super(props);
@@ -67,7 +75,7 @@ export class NativeEditor extends React.Component<INativeEditorProps, IMainState
                 <section id='main-panel-variable' aria-label={getLocString('DataScience.collapseVariableExplorerLabel', 'Variables')}>
                     {this.renderVariablePanel(this.props.baseTheme)}
                 </section>
-                <main id='main-panel-content'>
+                <main id='main-panel-content' onScroll={this.onContentScroll} ref={this.contentPanelScrollRef}>
                     {this.renderContentPanel(this.props.baseTheme)}
                 </main>
             </div>
@@ -201,7 +209,8 @@ export class NativeEditor extends React.Component<INativeEditorProps, IMainState
             focusCell: this.stateController.codeGotFocus,
             unfocusCell: this.stateController.codeLostFocus,
             allowsMarkdownEditing: true,
-            renderCellToolbar: this.renderCellToolbar
+            renderCellToolbar: this.renderCellToolbar,
+            onRenderCompleted: this.onContentFirstRender
         };
     }
     private getVariableProps = (baseTheme: string): IVariablePanelProps => {
@@ -221,6 +230,50 @@ export class NativeEditor extends React.Component<INativeEditorProps, IMainState
 
     private getNonMessageCells(): ICell[] {
         return this.state.cellVMs.map(cvm => cvm.cell).filter(c => c.data.cell_type !== 'messages');
+    }
+
+    private onContentFirstRender = (cells: (HTMLDivElement | null)[]) => {
+        this.stateController.setState({busy: false});
+
+        if (this.initialCellDivs.length === 0) {
+            this.initialCellDivs = cells;
+            this.debounceUpdateVisibleCells();
+        }
+    }
+
+    private onContentScroll = (_event: React.UIEvent<HTMLDivElement>) => {
+        if (this.contentPanelScrollRef.current) {
+            this.debounceUpdateVisibleCells();
+        }
+    }
+
+    private updateVisibleCells()  {
+        if (this.contentPanelScrollRef.current && this.initialCellDivs.length !== 0) {
+            const visibleTop = this.contentPanelScrollRef.current.offsetTop + this.contentPanelScrollRef.current.scrollTop;
+            const visibleBottom = visibleTop + this.contentPanelScrollRef.current.clientHeight;
+            const cellVMs = this.state.cellVMs;
+
+            // Go through the cell divs and find the ones that are suddenly visible
+            for (let index = 0; index < this.initialCellDivs.length; index += 1) {
+                if (index < cellVMs.length && cellVMs[index].useQuickEdit) {
+                    const div = this.initialCellDivs[index];
+                    if (div) {
+                        const top = div.offsetTop;
+                        const bottom = top + div.offsetHeight;
+                        if (top > visibleBottom) {
+                            break;
+                        } else if (bottom < visibleTop) {
+                            continue;
+                        } else {
+                            cellVMs[index].useQuickEdit = false;
+                        }
+                    }
+                }
+            }
+
+            // update our state so that newly visible items appear
+            this.setState({cellVMs});
+        }
     }
 
     private findCellViewModel(cellId: string): ICellViewModel | undefined {

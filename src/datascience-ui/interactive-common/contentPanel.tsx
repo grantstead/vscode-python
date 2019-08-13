@@ -44,6 +44,7 @@ export interface IContentPanelProps {
     unfocusCell?(cellId: string): void;
     keyDownCell?(cellId: string, e: IKeyboardEvent): void;
     renderCellToolbar(cellId: string): JSX.Element[] | null;
+    onRenderCompleted?(cells: (HTMLDivElement | null)[]): void;
 }
 
 export class ContentPanel extends React.Component<IContentPanelProps> {
@@ -58,6 +59,12 @@ export class ContentPanel extends React.Component<IContentPanelProps> {
 
     public componentDidMount() {
         this.scrollToBottom();
+
+        // Indicate we completed our first render
+        if (this.props.onRenderCompleted && this.cellContainerRefs.values) {
+            const values = Array.from(this.cellContainerRefs.values()).map(c => c.current);
+            this.props.onRenderCompleted(values);
+        }
     }
 
     public componentDidUpdate() {

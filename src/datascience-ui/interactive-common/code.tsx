@@ -22,6 +22,7 @@ export interface ICodeProps {
     editorOptions?: monacoEditor.editor.IEditorOptions;
     editorMeasureClassName?: string;
     showLineNumbers?: boolean;
+    useQuickEdit?: boolean;
     onCreated(code: string, modelId: string): void;
     onChange(changes: monacoEditor.editor.IModelContentChange[], modelId: string): void;
     openLink(uri: monacoEditor.Uri): void;
@@ -68,6 +69,7 @@ export class Code extends React.Component<ICodeProps, ICodeState> {
                     focused={this.props.focused}
                     unfocused={this.props.unfocused}
                     showLineNumbers={this.props.showLineNumbers}
+                    useQuickEdit={this.props.useQuickEdit}
                 />
                 <div className={waterMarkClass} role='textbox' onClick={this.clickWatermark}>{this.getWatermarkString()}</div>
             </div>

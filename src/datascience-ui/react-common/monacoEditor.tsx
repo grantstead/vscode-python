@@ -10,6 +10,11 @@ import { IDisposable } from '../../client/common/types';
 // tslint:disable-next-line:no-require-imports no-var-requires
 const debounce = require('lodash/debounce') as typeof import('lodash/debounce');
 
+// See the discussion here: https://github.com/Microsoft/tslint-microsoft-contrib/issues/676
+// tslint:disable: react-this-binding-issue
+// tslint:disable-next-line:no-require-imports no-var-requires
+const throttle = require('lodash/throttle') as typeof import('lodash/throttle');
+
 import './monacoEditor.css';
 
 const LINE_HEIGHT = 18;
@@ -50,6 +55,7 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
     private debouncedUpdateEditorSize : () => void | undefined;
     private styleObserver : MutationObserver;
     private watchingMargin: boolean = false;
+    private throttledUpdateWidgetPosition = throttle(this.updateWidgetPosition.bind(this), 100);
 
     constructor(props: IMonacoEditorProps) {
         super(props);
@@ -292,7 +298,7 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
     }
 
     private startUpdateWidgetPosition = () => {
-        this.updateWidgetPosition();
+        this.throttledUpdateWidgetPosition();
     }
 
     private updateBackgroundStyle = () => {
@@ -361,7 +367,7 @@ export class MonacoEditor extends React.Component<IMonacoEditorProps, IMonacoEdi
                 this.state.editor.layout({width, height});
 
                 // Also need to update our widget positions
-                this.updateWidgetPosition(width);
+                this.throttledUpdateWidgetPosition(width);
             }
         }
     }

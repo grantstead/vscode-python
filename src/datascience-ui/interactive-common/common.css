@@ -395,5 +395,14 @@ body, html {
     }
 }
 
+.plain-editor {
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 100%;
+}
 
+.plain-editor:focus {
+    outline: none;
+}
 

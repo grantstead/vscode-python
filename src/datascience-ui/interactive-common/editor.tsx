@@ -9,6 +9,7 @@ import { IKeyboardEvent } from '../react-common/event';
 import { MonacoEditor } from '../react-common/monacoEditor';
 import { InputHistory } from './inputHistory';
 
+// tslint:disable-next-line: import-name
 export interface IEditorProps {
     content : string;
     autoFocus?: boolean;
@@ -22,6 +23,7 @@ export interface IEditorProps {
     editorMeasureClassName?: string;
     language: string;
     showLineNumbers?: boolean;
+    useQuickEdit?: boolean;
     onCreated(code: string, modelId: string): void;
     onChange(changes: monacoEditor.editor.IModelContentChange[], model: monacoEditor.editor.ITextModel): void;
     openLink(uri: monacoEditor.Uri): void;
@@ -34,16 +36,17 @@ interface IEditorState {
     editor: monacoEditor.editor.IStandaloneCodeEditor | undefined;
     model: monacoEditor.editor.ITextModel | null;
     visibleLineCount: number;
+    forceMonaco: boolean;
 }
 
 export class Editor extends React.Component<IEditorProps, IEditorState> {
     private subscriptions: monacoEditor.IDisposable[] = [];
     private lastCleanVersionId: number = 0;
-    private editorRef: React.RefObject<MonacoEditor> = React.createRef<MonacoEditor>();
+    private monacoRef: React.RefObject<MonacoEditor> = React.createRef<MonacoEditor>();
 
     constructor(prop: IEditorProps) {
         super(prop);
-        this.state = {editor: undefined, model: null, visibleLineCount: 0};
+        this.state = {editor: undefined, model: null, visibleLineCount: 0, forceMonaco: false};
     }
 
     public componentWillUnmount = () => {
@@ -51,8 +54,38 @@ export class Editor extends React.Component<IEditorProps, IEditorState> {
     }
 
     public render() {
+        const classes = this.props.readOnly ? 'editor-area' : 'editor-area editor-area-editable';
+        const renderEditor = this.state.forceMonaco || !this.props.useQuickEdit ? this.renderMonacoEditor : this.renderQuickEditor;
+        return (
+            <div className = {classes}>
+                    {renderEditor()}
+            </div>
+        );
+    }
+
+    public giveFocus() {
+        const readOnly = this.props.testMode || this.props.readOnly;
+        if (this.state.editor && !readOnly) {
+            this.state.editor.focus();
+        }
+    }
+
+    private renderQuickEditor = (): JSX.Element => {
         const readOnly = this.props.readOnly;
-        const classes = readOnly ? 'editor-area' : 'editor-area editor-area-editable';
+        return (
+            <textarea
+                className='plain-editor'
+                readOnly={readOnly}
+                value={this.props.content}
+                rows={this.props.content.split('\n').length}
+                onChange={this.onAreaChange}
+                onMouseEnter={this.onAreaEnter}
+            />
+        );
+    }
+
+    private renderMonacoEditor = (): JSX.Element => {
+        const readOnly = this.props.readOnly;
         const options: monacoEditor.editor.IEditorConstructionOptions = {
             minimap: {
                 enabled: false
@@ -85,29 +118,30 @@ export class Editor extends React.Component<IEditorProps, IEditorState> {
         };
 
         return (
-            <div className={classes}>
-                <MonacoEditor
-                    measureWidthClassName={this.props.editorMeasureClassName}
-                    testMode={this.props.testMode}
-                    value={this.props.content}
-                    outermostParentClass={this.props.outermostParentClass}
-                    theme={this.props.monacoTheme ? this.props.monacoTheme : 'vs'}
-                    language={this.props.language}
-                    editorMounted={this.editorDidMount}
-                    options={options}
-                    openLink={this.props.openLink}
-                    ref={this.editorRef}
-                    lineCountChanged={this.visibleCountChanged}
-                />
-            </div>
+            <MonacoEditor
+                measureWidthClassName={this.props.editorMeasureClassName}
+                testMode={this.props.testMode}
+                value={this.props.content}
+                outermostParentClass={this.props.outermostParentClass}
+                theme={this.props.monacoTheme ? this.props.monacoTheme : 'vs'}
+                language={this.props.language}
+                editorMounted={this.editorDidMount}
+                options={options}
+                openLink={this.props.openLink}
+                ref={this.monacoRef}
+                lineCountChanged={this.visibleCountChanged}
+            />
         );
     }
 
-    public giveFocus() {
-        const readOnly = this.props.testMode || this.props.readOnly;
-        if (this.state.editor && !readOnly) {
-            this.state.editor.focus();
-        }
+    private onAreaChange = (_event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        // Force switch to monaco
+        this.setState({forceMonaco: true});
+    }
+
+    private onAreaEnter = (_event: React.MouseEvent<HTMLTextAreaElement, MouseEvent>) => {
+        // Force switch to monaco
+        this.setState({forceMonaco: true});
     }
 
     private visibleCountChanged = (newCount: number) => {
@@ -148,8 +182,8 @@ export class Editor extends React.Component<IEditorProps, IEditorState> {
     }
 
     private onKeyDown = (e: monacoEditor.IKeyboardEvent) => {
-        if (this.state.editor && this.state.model && this.editorRef && this.editorRef.current) {
-            const isSuggesting = this.editorRef.current.isSuggesting();
+        if (this.state.editor && this.state.model && this.monacoRef && this.monacoRef.current) {
+            const isSuggesting = this.monacoRef.current.isSuggesting();
             const cursor = this.state.editor.getPosition();
             const isFirstLine = cursor !== null && cursor.lineNumber === 1;
             const isLastLine = cursor !== null && cursor.lineNumber === this.state.model!.getLineCount();

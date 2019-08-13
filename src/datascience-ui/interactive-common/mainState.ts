@@ -58,7 +58,7 @@ export function generateTestState(inputBlockToggled: (id: string) => void, fileP
     return {
         cellVMs: generateVMs(inputBlockToggled, filePath, editable),
         editCellVM: createEditableCellVM(1),
-        busy: false,
+        busy: true,
         skipNextScroll: false,
         undoStack: [],
         redoStack: [],
@@ -150,7 +150,8 @@ export function createCellVM(inputCell: ICell, settings: IDataScienceSettings | 
         inputBlockShow: true,
         inputBlockText: inputText,
         inputBlockCollapseNeeded: (inputLinesCount > 1),
-        inputBlockToggled: inputBlockToggled
+        inputBlockToggled: inputBlockToggled,
+        useQuickEdit: true
     };
 }
 
@@ -162,7 +163,11 @@ function generateVMs(inputBlockToggled: (id: string) => void, filePath: string, 
 }
 
 function generateCells(filePath: string): ICell[] {
-    const cellData = generateCellData();
+    // Dupe a bunch times for perf reasons
+    let cellData: (nbformat.ICodeCell | nbformat.IMarkdownCell | nbformat.IRawCell | IMessageCell)[] = [];
+    for (let i = 0; i < 10; i += 1) {
+        cellData = [...cellData, ...generateCellData()];
+    }
     return cellData.map((data: nbformat.ICodeCell | nbformat.IMarkdownCell | nbformat.IRawCell | IMessageCell, key: number) => {
         return {
             id: key.toString(),
