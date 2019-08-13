@@ -61,6 +61,11 @@ export class NativeEditor extends React.Component<INativeEditorProps, IMainState
         this.state = this.stateController.getState();
     }
 
+    public componentWillUnmount() {
+        // Dispose of our state controller so it stops listening
+        this.stateController.dispose();
+    }
+
     public render() {
         return (
             <div id='main-panel' ref={this.mainPanelRef} role='Main'>

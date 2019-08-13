@@ -55,6 +55,11 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
         return this.stateController.requiresUpdate(nextState);
     }
 
+    public componentWillUnmount() {
+        // Dispose of our state controller so it stops listening
+        this.stateController.dispose();
+    }
+
     public render() {
         return (
             <div id='main-panel' ref={this.mainPanelRef} role='Main'>
