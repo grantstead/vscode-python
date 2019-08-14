@@ -31,6 +31,7 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
     private editCellRef: React.RefObject<Cell> = React.createRef<Cell>();
     private contentPanelRef: React.RefObject<ContentPanel> = React.createRef<ContentPanel>();
     private stateController: InteractivePanelStateController;
+    private renderCount: number = 0;
 
     constructor(props: IInteractivePanelProps) {
         super(props);
@@ -52,7 +53,7 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
     }
 
     public shouldComponentUpdate(_nextProps: IInteractivePanelProps, nextState: IMainState): boolean {
-        return this.stateController.requiresUpdate(nextState);
+        return this.stateController.requiresUpdate(this.state, nextState);
     }
 
     public componentWillUnmount() {
@@ -61,6 +62,12 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
     }
 
     public render() {
+
+        // If in test mode, update our count. Use this to determine how many renders a normal update takes.
+        if (this.props.testMode) {
+            this.renderCount = this.renderCount + 1;
+        }
+
         return (
             <div id='main-panel' ref={this.mainPanelRef} role='Main'>
                 <div className='styleSetter'>
@@ -308,7 +315,7 @@ export class InteractivePanel extends React.Component<IInteractivePanelProps, IM
 
         return (
             [
-                <div className='cell-toolbar'>
+                <div className='cell-toolbar' key={0}>
                     <ImageButton baseTheme={this.props.baseTheme} onClick={gotoCode} tooltip={getLocString('DataScience.gotoCodeButtonTooltip', 'Go to code')} hidden={hasNoSource}>
                         <Image baseTheme={this.props.baseTheme} class='image-button-image' image={ImageName.GoToSourceCode} />
                     </ImageButton>

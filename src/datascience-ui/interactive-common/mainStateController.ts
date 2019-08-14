@@ -119,9 +119,9 @@ export class MainStateController implements IMessageHandler {
         this.postOffice.dispose();
     }
 
-    public requiresUpdate(nextState: IMainState): boolean {
+    public requiresUpdate(prevState: IMainState, nextState: IMainState): boolean {
         // Compare all keys
-        return !fastDeepEqual(this.state, nextState);
+        return !fastDeepEqual(prevState, nextState);
     }
 
     // tslint:disable-next-line:no-any cyclomatic-complexity max-func-body-length
@@ -898,15 +898,16 @@ export class MainStateController implements IMessageHandler {
             const newExecutionCount = cell.data.execution_count ?
                 Math.max(this.state.currentExecutionCount, parseInt(cell.data.execution_count.toString(), 10)) :
                 this.state.currentExecutionCount;
-            if (newExecutionCount !== this.state.currentExecutionCount) {
+            if (newExecutionCount !== this.state.currentExecutionCount && !this.props.testMode) {
                 // We also need to update our variable explorer when the execution count changes
                 // Use the ref here to maintain var explorer independence
                 this.refreshVariables();
             }
 
-            // Update our state but only the cell vms.
+            // Have to make a copy of the cell VM array or
+            // we won't actually update.
             const newVMs = [...this.state.cellVMs];
-            newVMs[index].cell = cell;
+            newVMs[index].cell = cloneDeep(cell);
             this.setState({
                 cellVMs: newVMs,
                 currentExecutionCount: newExecutionCount
