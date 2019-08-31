@@ -2,8 +2,8 @@
     "name": "python",
     "displayName": "Python",
     "description": "Linting, Debugging (multi-threaded, remote), Intellisense, code formatting, refactoring, unit tests, snippets, and more.",
-    "version": "2019.10.0-dev",
-    "languageServerVersion": "0.3.66",
+    "version": "2019.9.0-dev",
+    "languageServerVersion": "0.3.43",
     "publisher": "ms-python",
     "author": {
         "name": "Microsoft Corporation"
@@ -235,6 +235,21 @@
             {
                 "command": "python.refactorExtractMethod",
                 "title": "%python.command.python.refactorExtractMethod.title%",
+                "category": "Python Refactor"
+            },
+            {
+                "command": "python.refactorUseFunction",
+                "title": "%python.command.python.refactorUseFunction.title%",
+                "category": "Python Refactor"
+            },
+            {
+                "command": "python.refactorInline",
+                "title": "%python.command.python.refactorInline.title%",
+                "category": "Python Refactor"
+            },
+            {
+                "command": "python.refactorLocalToField",
+                "title": "%python.command.python.refactorLocalToField.title%",
                 "category": "Python Refactor"
             },
             {
@@ -526,6 +541,24 @@
                     "title": "Refactor: Extract Method",
                     "group": "Refactor",
                     "when": "editorHasSelection && editorLangId == python"
+                },
+                {
+                    "command": "python.refactorUseFunction",
+                    "title": "Refactor: Use Function",
+                    "group": "Refactor",
+                    "when": "editorFocus && editorLangId == python"
+                },
+                {
+                    "command": "python.refactorInline",
+                    "title": "Refactor: Inline",
+                    "group": "Refactor",
+                    "when": "editorFocus && editorLangId == python"
+                },
+                {
+                    "command": "python.refactorLocalToField",
+                    "title": "Refactor: Local To Field",
+                    "group": "Refactor",
+                    "when": "editorFocus && editorLangId == python"
                 },
                 {
                     "command": "python.sortImports",
@@ -1669,10 +1702,15 @@
                     "description": "Whether to install Python modules globally when not using an environment.",
                     "scope": "resource"
                 },
-                "python.jediEnabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enables Jedi as IntelliSense engine instead of Microsoft Python Analysis Engine.",
+                "python.languageServer": {
+                    "type": "string",
+                    "enum": [
+                        "jedi",
+                        "microsoft",
+                        "none"
+                    ],
+                    "default": "jedi",
+                    "description": "Specifies which language server to use for IntelliSense engine.",
                     "scope": "resource"
                 },
                 "python.jediMemoryLimit": {
@@ -1936,8 +1974,7 @@
                     "description": "Path to mypy, you can use a custom version of mypy by modifying this setting to include the full path.",
                     "scope": "resource"
                 },
-
-                "python.linting.pycodestyleArgs": {
+                "python.linting.pep8Args": {
                     "type": "array",
                     "description": "Arguments passed in. Each argument is a separate item in the array.",
                     "default": [],
@@ -1946,10 +1983,10 @@
                     },
                     "scope": "resource"
                 },
-                "python.linting.pycodestyleCategorySeverity.E": {
+                "python.linting.pep8CategorySeverity.E": {
                     "type": "string",
                     "default": "Error",
-                    "description": "Severity of pycodestyle message type 'E'.",
+                    "description": "Severity of Pep8 message type 'E'.",
                     "enum": [
                         "Hint",
                         "Error",
@@ -1958,10 +1995,10 @@
                     ],
                     "scope": "resource"
                 },
-                "python.linting.pycodestyleCategorySeverity.W": {
+                "python.linting.pep8CategorySeverity.W": {
                     "type": "string",
                     "default": "Warning",
-                    "description": "Severity of pycodestyle message type 'W'.",
+                    "description": "Severity of Pep8 message type 'W'.",
                     "enum": [
                         "Hint",
                         "Error",
@@ -1970,16 +2007,16 @@
                     ],
                     "scope": "resource"
                 },
-                "python.linting.pycodestyleEnabled": {
+                "python.linting.pep8Enabled": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Whether to lint Python files using pycodestyle",
+                    "description": "Whether to lint Python files using pep8",
                     "scope": "resource"
                 },
-                "python.linting.pycodestylePath": {
+                "python.linting.pep8Path": {
                     "type": "string",
-                    "default": "pycodestyle",
-                    "description": "Path to pycodestyle, you can use a custom version of pycodestyle by modifying this setting to include the full path.",
+                    "default": "pep8",
+                    "description": "Path to pep8, you can use a custom version of pep8 by modifying this setting to include the full path.",
                     "scope": "resource"
                 },
                 "python.linting.prospectorArgs": {

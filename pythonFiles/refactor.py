@@ -14,10 +14,14 @@ try:
     from rope.base import libutils
     from rope.refactor.rename import Rename
     from rope.refactor.extract import ExtractMethod, ExtractVariable
+    from rope.refactor.usefunction import UseFunction
+    from rope.refactor.inline import create_inline
+    from rope.refactor.localtofield import LocalToField
     import rope.base.project
     import rope.base.taskhandle
 except:
-    jsonMessage = {'error': True, 'message': 'Rope not installed', 'traceback': '', 'type': 'ModuleNotFoundError'}
+    jsonMessage = {'error': True, 'message': 'Rope not installed',
+                   'traceback': '', 'type': 'ModuleNotFoundError'}
     sys.stderr.write(json.dumps(jsonMessage))
     sys.stderr.flush()
 
@@ -57,6 +61,7 @@ class Change():
         self.diff = diff
         self.fileMode = fileMode
 
+
 def get_diff(changeset):
     """This is a copy of the code form the ChangeSet.get_description method found in Rope."""
     new = changeset.new_contents
@@ -73,11 +78,12 @@ def get_diff(changeset):
     if not old_lines[-1].endswith('\n'):
         old_lines[-1] = old_lines[-1] + os.linesep
         new = new + os.linesep
-    
+
     result = difflib.unified_diff(
         old_lines, new.splitlines(True),
         'a/' + changeset.resource.path, 'b/' + changeset.resource.path)
     return ''.join(list(result))
+
 
 class BaseRefactoring(object):
     """
@@ -188,6 +194,68 @@ class ExtractMethodRefactor(ExtractVariableRefactor):
                 raise Exception('Unknown Change')
 
 
+class UseFunctionRefactor(BaseRefactoring):
+    """ This class implements the Use Function refactoring, but does it only on the current
+        resource (file).
+    """
+
+    def __init__(self, project, resource, name="Use Function", progressCallback=None, startOffset=None):
+        BaseRefactoring.__init__(self, project, resource,
+                                 name, progressCallback)
+        self._startOffset = startOffset
+
+    def onRefactor(self):
+        renamed = UseFunction(
+            self.project, self.resource, self._startOffset)
+        changes = renamed.get_changes([renamed.resource], task_handle=self._handle)
+        for item in changes.changes:
+            if isinstance(item, rope.base.change.ChangeContents):
+                self.changes.append(
+                    Change(item.resource.real_path, ChangeType.EDIT, get_diff(item)))
+            else:
+                raise Exception('Unknown Change')
+
+
+class InlineRefactor(BaseRefactoring):
+    """ This class implements the Inline refactoring.
+    """
+
+    def __init__(self, project, resource, name="Inline", progressCallback=None, startOffset=None):
+        BaseRefactoring.__init__(self, project, resource,
+                                 name, progressCallback)
+        self._startOffset = startOffset
+
+    def onRefactor(self):
+        renamed = create_inline(self.project, self.resource, self._startOffset)
+        changes = renamed.get_changes(resources=[self.resource], task_handle=self._handle)
+        for item in changes.changes:
+            if isinstance(item, rope.base.change.ChangeContents):
+                self.changes.append(
+                    Change(item.resource.real_path, ChangeType.EDIT, get_diff(item)))
+            else:
+                raise Exception('Unknown Change')
+
+
+class LocalToFieldRefactor(BaseRefactoring):
+    """ This class implements the Local To Field refactoring.
+    """
+
+    def __init__(self, project, resource, name="Local To Field", progressCallback=None, startOffset=None):
+        BaseRefactoring.__init__(self, project, resource,
+                                 name, progressCallback)
+        self._startOffset = startOffset
+
+    def onRefactor(self):
+        renamed = LocalToField(self.project, self.resource, self._startOffset)
+        changes = renamed.get_changes()
+        for item in changes.changes:
+            if isinstance(item, rope.base.change.ChangeContents):
+                self.changes.append(
+                    Change(item.resource.real_path, ChangeType.EDIT, get_diff(item)))
+            else:
+                raise Exception('Unknown Change')
+
+
 class RopeRefactoring(object):
 
     def __init__(self):
@@ -245,6 +313,54 @@ class RopeRefactoring(object):
             valueToReturn.append({'diff': change.diff})
         return valueToReturn
 
+    def _useFunction(self, filePath, start, indent_size):
+        """
+        Use Function
+        """
+        project = rope.base.project.Project(
+            WORKSPACE_ROOT, ropefolder=ROPE_PROJECT_FOLDER, save_history=False, indent_size=indent_size)
+        resourceToRefactor = libutils.path_to_resource(project, filePath)
+        refactor = UseFunctionRefactor(project, resourceToRefactor, startOffset=start)
+        refactor.refactor()
+        changes = refactor.changes
+        project.close()
+        valueToReturn = []
+        for change in changes:
+            valueToReturn.append({'diff': change.diff})
+        return valueToReturn
+
+    def _inline(self, filePath, start, indent_size):
+        """
+        Inline
+        """
+        project = rope.base.project.Project(
+            WORKSPACE_ROOT, ropefolder=ROPE_PROJECT_FOLDER, save_history=False, indent_size=indent_size)
+        resourceToRefactor = libutils.path_to_resource(project, filePath)
+        refactor = InlineRefactor(project, resourceToRefactor, startOffset=start)
+        refactor.refactor()
+        changes = refactor.changes
+        project.close()
+        valueToReturn = []
+        for change in changes:
+            valueToReturn.append({'diff': change.diff})
+        return valueToReturn
+
+    def _localToField(self, filePath, start, indent_size):
+        """
+        Local To Field
+        """
+        project = rope.base.project.Project(
+            WORKSPACE_ROOT, ropefolder=ROPE_PROJECT_FOLDER, save_history=False, indent_size=indent_size)
+        resourceToRefactor = libutils.path_to_resource(project, filePath)
+        refactor = LocalToFieldRefactor(project, resourceToRefactor, startOffset=start)
+        refactor.refactor()
+        changes = refactor.changes
+        project.close()
+        valueToReturn = []
+        for change in changes:
+            valueToReturn.append({'diff': change.diff})
+        return valueToReturn
+
     def _serialize(self, identifier, results):
         """
         Serializes the refactor results
@@ -282,6 +398,18 @@ class RopeRefactoring(object):
             changes = self._extractMethod(request['file'], int(
                 request['start']), int(request['end']), request['name'], int(request['indent_size']))
             return self._write_response(self._serialize(request['id'], changes))
+        elif lookup == 'use_function':
+            changes = self._useFunction(request['file'], int(
+                request['start']), int(request['indent_size']))
+            return self._write_response(self._serialize(request['id'], changes))
+        elif lookup == 'inline':
+            changes = self._inline(request['file'], int(
+                request['start']), int(request['indent_size']))
+            return self._write_response(self._serialize(request['id'], changes))
+        elif lookup == 'local_to_field':
+            changes = self._localToField(request['file'], int(
+                request['start']), int(request['indent_size']))
+            return self._write_response(self._serialize(request['id'], changes))
 
     def _write_response(self, response):
         sys.stdout.write(response + '\n')
@@ -295,9 +423,11 @@ class RopeRefactoring(object):
             except:
                 exc_type, exc_value, exc_tb = sys.exc_info()
                 tb_info = traceback.extract_tb(exc_tb)
-                jsonMessage = {'error': True, 'message': str(exc_value), 'traceback': str(tb_info), 'type': str(exc_type)}
+                jsonMessage = {'error': True, 'message': str(
+                    exc_value), 'traceback': str(tb_info), 'type': str(exc_type)}
                 sys.stderr.write(json.dumps(jsonMessage))
                 sys.stderr.flush()
+
 
 if __name__ == '__main__':
     RopeRefactoring().watch()

@@ -38,6 +38,39 @@ export function activateSimplePythonRefactorProvider(context: vscode.ExtensionCo
         sendTelemetryWhenDone(EventName.REFACTOR_EXTRACT_FUNCTION, promise, stopWatch);
     });
     context.subscriptions.push(disposable);
+
+    disposable = vscode.commands.registerCommand(Commands.Refactor_Use_Function, () => {
+        const stopWatch = new StopWatch();
+        const promise = useFunction(context.extensionPath,
+            vscode.window.activeTextEditor!,
+            vscode.window.activeTextEditor!.selection,
+            // tslint:disable-next-line:no-empty
+            outputChannel, serviceContainer).catch(() => { });
+        sendTelemetryWhenDone(EventName.REFACTOR_USE_FUNCTION, promise, stopWatch);
+    });
+    context.subscriptions.push(disposable);
+
+    disposable = vscode.commands.registerCommand(Commands.Refactor_Inline, () => {
+        const stopWatch = new StopWatch();
+        const promise = inline(context.extensionPath,
+            vscode.window.activeTextEditor!,
+            vscode.window.activeTextEditor!.selection,
+            // tslint:disable-next-line:no-empty
+            outputChannel, serviceContainer).catch(() => { });
+        sendTelemetryWhenDone(EventName.REFACTOR_INLINE, promise, stopWatch);
+    });
+    context.subscriptions.push(disposable);
+
+    disposable = vscode.commands.registerCommand(Commands.Refactor_Local_To_Field, () => {
+        const stopWatch = new StopWatch();
+        const promise = localToField(context.extensionPath,
+            vscode.window.activeTextEditor!,
+            vscode.window.activeTextEditor!.selection,
+            // tslint:disable-next-line:no-empty
+            outputChannel, serviceContainer).catch(() => { });
+        sendTelemetryWhenDone(EventName.REFACTOR_LOCAL_TO_FIELD, promise, stopWatch);
+    });
+    context.subscriptions.push(disposable);
 }
 
 // Exported for unit testing
@@ -79,6 +112,75 @@ export function extractMethod(extensionDir: string, textEditor: vscode.TextEdito
         const newName = `newmethod${new Date().getMilliseconds().toString()}`;
         const proxy = new RefactorProxy(extensionDir, pythonSettings, workspaceRoot, serviceContainer);
         const rename = proxy.extractMethod<RenameResponse>(textEditor.document, newName, textEditor.document.uri.fsPath, range, textEditor.options).then(response => {
+            return response.results[0].diff;
+        });
+
+        return extractName(textEditor, newName, rename, outputChannel);
+    });
+}
+
+// Exported for unit testing
+export function useFunction(extensionDir: string, textEditor: vscode.TextEditor, range: vscode.Range,
+    // tslint:disable-next-line:no-any
+    outputChannel: vscode.OutputChannel, serviceContainer: IServiceContainer): Promise<any> {
+
+    let workspaceFolder = vscode.workspace.getWorkspaceFolder(textEditor.document.uri);
+    if (!workspaceFolder && Array.isArray(vscode.workspace.workspaceFolders) && vscode.workspace.workspaceFolders.length > 0) {
+        workspaceFolder = vscode.workspace.workspaceFolders[0];
+    }
+    const workspaceRoot = workspaceFolder ? workspaceFolder.uri.fsPath : __dirname;
+    const pythonSettings = serviceContainer.get<IConfigurationService>(IConfigurationService).getSettings(workspaceFolder ? workspaceFolder.uri : undefined);
+
+    return validateDocumentForRefactor(textEditor).then(() => {
+        const newName = `newmethod${new Date().getMilliseconds().toString()}`;
+        const proxy = new RefactorProxy(extensionDir, pythonSettings, workspaceRoot, serviceContainer);
+        const rename = proxy.useFunction<RenameResponse>(textEditor.document, textEditor.document.uri.fsPath, range, textEditor.options).then(response => {
+            return response.results[0].diff;
+        });
+
+        return extractName(textEditor, newName, rename, outputChannel);
+    });
+}
+
+// Exported for unit testing
+export function inline(extensionDir: string, textEditor: vscode.TextEditor, range: vscode.Range,
+    // tslint:disable-next-line:no-any
+    outputChannel: vscode.OutputChannel, serviceContainer: IServiceContainer): Promise<any> {
+
+    let workspaceFolder = vscode.workspace.getWorkspaceFolder(textEditor.document.uri);
+    if (!workspaceFolder && Array.isArray(vscode.workspace.workspaceFolders) && vscode.workspace.workspaceFolders.length > 0) {
+        workspaceFolder = vscode.workspace.workspaceFolders[0];
+    }
+    const workspaceRoot = workspaceFolder ? workspaceFolder.uri.fsPath : __dirname;
+    const pythonSettings = serviceContainer.get<IConfigurationService>(IConfigurationService).getSettings(workspaceFolder ? workspaceFolder.uri : undefined);
+
+    return validateDocumentForRefactor(textEditor).then(() => {
+        const newName = `newmethod${new Date().getMilliseconds().toString()}`;
+        const proxy = new RefactorProxy(extensionDir, pythonSettings, workspaceRoot, serviceContainer);
+        const rename = proxy.inline<RenameResponse>(textEditor.document, textEditor.document.uri.fsPath, range, textEditor.options).then(response => {
+            return response.results[0].diff;
+        });
+
+        return extractName(textEditor, newName, rename, outputChannel);
+    });
+}
+
+// Exported for unit testing
+export function localToField(extensionDir: string, textEditor: vscode.TextEditor, range: vscode.Range,
+    // tslint:disable-next-line:no-any
+    outputChannel: vscode.OutputChannel, serviceContainer: IServiceContainer): Promise<any> {
+
+    let workspaceFolder = vscode.workspace.getWorkspaceFolder(textEditor.document.uri);
+    if (!workspaceFolder && Array.isArray(vscode.workspace.workspaceFolders) && vscode.workspace.workspaceFolders.length > 0) {
+        workspaceFolder = vscode.workspace.workspaceFolders[0];
+    }
+    const workspaceRoot = workspaceFolder ? workspaceFolder.uri.fsPath : __dirname;
+    const pythonSettings = serviceContainer.get<IConfigurationService>(IConfigurationService).getSettings(workspaceFolder ? workspaceFolder.uri : undefined);
+
+    return validateDocumentForRefactor(textEditor).then(() => {
+        const newName = `newmethod${new Date().getMilliseconds().toString()}`;
+        const proxy = new RefactorProxy(extensionDir, pythonSettings, workspaceRoot, serviceContainer);
+        const rename = proxy.localToField<RenameResponse>(textEditor.document, textEditor.document.uri.fsPath, range, textEditor.options).then(response => {
             return response.results[0].diff;
         });
 

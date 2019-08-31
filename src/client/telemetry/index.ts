@@ -877,7 +877,16 @@ export interface IEventNamePropertyMapping {
     /**
      * Telemetry tracking switching between LS and Jedi
      */
-    [EventName.PYTHON_LANGUAGE_SERVER_SWITCHED]: { change: 'Switch to Jedi from LS' | 'Switch to LS from Jedi' };
+    [EventName.PYTHON_LANGUAGE_SERVER_SWITCHED]: {
+        /**
+         * Value of LS setting prior to switch.
+         */
+        oldValue: string;
+        /**
+         * Value of LS setting after switch.
+         */
+        newValue: string;
+    };
     /**
      * Telemetry event sent with details after attempting to download LS
      */
@@ -1002,6 +1011,18 @@ export interface IEventNamePropertyMapping {
     [EventName.REFACTOR_EXTRACT_VAR]: never | undefined;
     /**
      * Telemetry event sent when providing an edit that describes changes to rename a symbol to a different name
+     */
+    [EventName.REFACTOR_USE_FUNCTION]: never | undefined;
+    /**
+     * Telemetry event sent when providing an edit that describes changes to use a function
+     */
+    [EventName.REFACTOR_INLINE]: never | undefined;
+    /**
+     * Telemetry event sent when providing an edit that describes changes to inline something
+     */
+    [EventName.REFACTOR_LOCAL_TO_FIELD]: never | undefined;
+    /**
+     * Telemetry event sent when providing an edit that describes changes to change a local to a field
      */
     [EventName.REFACTOR_RENAME]: never | undefined;
     /**
